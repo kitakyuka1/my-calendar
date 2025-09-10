@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤務シフトカレンダー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        .team-selector {
+            margin-bottom: 15px;
+        }
+
+        .team-selector select {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .team-selector select option {
+            color: black;
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .month-nav button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .month-nav button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .current-month {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: space-around;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .calendar {
+            padding: 20px;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            padding: 10px 0;
+        }
+
+        .days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .day:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .day.other-month {
+            color: #ccc;
+            background: #f8f8f8;
+        }
+
+        .day.work {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .day.rest {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .day.w-day {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .day.selected {
+            border: 2px solid #9b59b6 !important;
+            box-shadow: 0 0 10px rgba(155, 89, 182, 0.5);
+        }
+
+        .day-number {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .shift-text {
+            font-size: 8px;
+            margin-top: 2px;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .diagram-number {
+            font-size: 9px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            margin-top: 1px;
+        }
+
+        .today {
+            border: 2px solid #f39c12 !important;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+
+        .controls {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .diagram-input {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            margin: 10px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input[type="number"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .input-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .input-buttons button {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-buttons button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(142, 68, 173, 0.3);
+        }
+
+        .selected-date {
+            background: linear-gradient(135deg, #16a085 0%, #27ae60 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .diagram-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>勤務シフトカレンダー</h1>
+            <div class="team-selector">
+                <select id="teamSelect" onchange="changeTeam()">
+                    <option value="1">1班</option>
+                    <option value="2">2班</option>
+                    <option value="3">3班</option>
+                    <option value="4">4班</option>
+                    <option value="5">5班</option>
+                    <option value="6">6班</option>
+                    <option value="7">7班</option>
+                </select>
+            </div>
+            <div class="month-nav">
+                <button onclick="changeMonth(-1)">‹</button>
+                <div class="current-month" id="currentMonth"></div>
+                <button onclick="changeMonth(1)">›</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #3498db, #2980b9);"></div>
+                    <span>出勤</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                    <span>休み</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #f39c12, #e67e22);"></div>
+                    <span>W日</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="diagram-input">
+            <div id="selectedDateDisplay" class="selected-date" style="display: none;">
+                選択日: <span id="selectedDateText"></span>
+            </div>
+            
+            <div class="input-group">
+                <label for="diagramNumber">ダイヤ番号（3桁）</label>
+                <input type="number" id="diagramNumber" min="101" max="532" placeholder="例: 401">
+            </div>
+
+            <div class="input-group">
+                <label>出番方式</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="shiftType" value="A" checked>
+                        A（小振り）
+                    </label>
+                    <label>
+                        <input type="radio" name="shiftType" value="B">
+                        B（大振り）
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-buttons">
+                <button onclick="applyDiagram()">ダイヤ適用</button>
+                <button onclick="clearDiagram()">クリア</button>
+            </div>
+
+            <div class="diagram-info">
+                <strong>使い方:</strong><br>
+                1. カレンダーの日付をクリックして選択<br>
+                2. その日のダイヤ番号を入力（例: 401）<br>
+                3. 出番方式を選択してダイヤ適用をクリック<br>
+                ※ダイヤ番号の1桁目は出番と一致する必要があります
+            </div>
+        </div>
+
+        <div class="calendar">
+            <div class="weekdays">
+                <div class="weekday">日</div>
+                <div class="weekday">月</div>
+                <div class="weekday">火</div>
+                <div class="weekday">水</div>
+                <div class="weekday">木</div>
+                <div class="weekday">金</div>
+                <div class="weekday">土</div>
+            </div>
+            <div class="days" id="calendar-days"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="resetToToday()">今月に戻る</button>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let currentTeam = 1;
+        let selectedDate = null;
+        let diagramData = {}; // 日付をキーとしてダイヤ番号を保存
+
+        // 初期設定: 2025年1月26日が最初のW（各班の出番は異なる）
+        const initialWDate = new Date(2025, 0, 26); // 2025年1月26日
+        const cycleLength = 28; // Wの発生間隔
+
+        // 出番サイクル
+        const shiftCycle = ['1の出', '2の出', '3の出', '4の出', '5の出', '指定休', '公休'];
+        
+        // 各班の1月26日の出番インデックス
+        const teamInitialShifts = {
+            1: 3, // 4の出
+            2: 2, // 3の出
+            3: 1, // 2の出
+            4: 0, // 1の出
+            5: 6, // 公休
+            6: 5, // 指定休
+            7: 4  // 5の出
+        };
+
+        function isWDay(date) {
+            const daysDiff = Math.floor((date - initialWDate) / (1000 * 60 * 60 * 24));
+            return daysDiff >= 0 && daysDiff % cycleLength === 0;
+        }
+
+        function calculateShift(date, team) {
+            const daysDiff = Math.floor((date - initialWDate) / (1000 * 60 * 60 * 24));
+            const initialShiftIndex = teamInitialShifts[team];
+            
+            if (daysDiff < 0) {
+                // 初期日より前の計算
+                const totalDays = Math.abs(daysDiff);
+                const cycles = Math.floor(totalDays / cycleLength);
+                const remainingDays = totalDays % cycleLength;
+                
+                let shiftIndex = initialShiftIndex;
+                
+                // サイクル分を戻す
+                for (let i = 0; i < cycles; i++) {
+                    shiftIndex = (shiftIndex - cycleLength + shiftCycle.length * 100) % shiftCycle.length;
+                }
+                
+                // 残り日数分を戻す
+                shiftIndex = (shiftIndex - remainingDays + shiftCycle.length * 100) % shiftCycle.length;
+                
+                return shiftCycle[shiftIndex];
+            }
+            
+            // 初期日以降の計算
+            let dayCount = 0;
+            let shiftIndex = initialShiftIndex;
+            let currentCalcDate = new Date(initialWDate);
+            
+            while (dayCount < daysDiff) {
+                if (isWDay(currentCalcDate)) {
+                    // W日の場合、翌日も同じ出番になる
+                    dayCount += 2; // W日とその翌日をスキップ
+                    currentCalcDate.setDate(currentCalcDate.getDate() + 2);
+                } else {
+                    dayCount++;
+                    currentCalcDate.setDate(currentCalcDate.getDate() + 1);
+                }
+                
+                if (dayCount <= daysDiff) {
+                    shiftIndex = (shiftIndex + 1) % shiftCycle.length;
+                }
+            }
+            
+            return shiftCycle[shiftIndex];
+        }
+
+        function getShiftForDate(date, team) {
+            const isW = isWDay(date);
+            const shift = calculateShift(date, team);
+            
+            if (isW) {
+                return `W(${shift})`;
+            }
+            
+            // W日の翌日かどうかチェック
+            const prevDay = new Date(date);
+            prevDay.setDate(prevDay.getDate() - 1);
+            if (isWDay(prevDay)) {
+                // W日の翌日は同じ出番
+                const wShift = calculateShift(prevDay, team);
+                return wShift;
+            }
+            
+            return shift;
+        }
+
+        function isWorkDay(shift) {
+            return shift.includes('の出');
+        }
+
+        function getShiftNumber(shift) {
+            if (shift.includes('1の出')) return 1;
+            if (shift.includes('2の出')) return 2;
+            if (shift.includes('3の出')) return 3;
+            if (shift.includes('4の出')) return 4;
+            if (shift.includes('5の出')) return 5;
+            return 0;
+        }
+
+        function calculateDiagramNumber(baseDate, baseDiagram, targetDate, shiftType) {
+            const baseDateObj = new Date(baseDate);
+            const targetDateObj = new Date(targetDate);
+            const daysDiff = Math.floor((targetDateObj - baseDateObj) / (1000 * 60 * 60 * 24));
+            
+            const baseShiftNum = Math.floor(baseDiagram / 100);
+            const baseSheet = baseDiagram % 100;
+            
+            let currentShiftNum = baseShiftNum;
+            let currentSheet = baseSheet;
+            
+            if (daysDiff === 0) {
+                return baseDiagram;
+            }
+            
+            const direction = daysDiff > 0 ? 1 : -1;
+            const totalDays = Math.abs(daysDiff);
+            
+            for (let i = 0; i < totalDays; i++) {
+                const calcDate = new Date(baseDateObj);
+                calcDate.setDate(baseDateObj.getDate() + direction * (i + 1));
+                
+                const shift = getShiftForDate(calcDate, currentTeam);
+                
+                if (shift.includes('指定休') || shift.includes('公休') || shift.includes('W(')) {
+                    // 休みの日やW日は計算をスキップ
+                    continue;
+                }
+                
+                const shiftNum = getShiftNumber(shift);
+                if (shiftNum === 0) continue;
+                
+                // 次の出番に進める
+                if (direction > 0) {
+                    currentShiftNum++;
+                    if (currentShiftNum > 5) {
+                        currentShiftNum = 1;
+                        // 出番が1周したら枚数を進める
+                        if (shiftType === 'A') {
+                            currentSheet++;
+                            if (currentSheet > 32) currentSheet = 1;
+                        } else { // B（大振り）
+                            if (currentSheet % 2 === 0) {
+                                currentSheet--;
+                            } else {
+                                currentSheet += 3;
+                                if (currentSheet > 32) {
+                                    currentSheet = 2;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    currentShiftNum--;
+                    if (currentShiftNum < 1) {
+                        currentShiftNum = 5;
+                        // 出番が1周したら枚数を戻す
+                        if (shiftType === 'A') {
+                            currentSheet--;
+                            if (currentSheet < 1) currentSheet = 32;
+                        } else { // B（大振り）
+                            if (currentSheet % 2 === 1) {
+                                currentSheet++;
+                                if (currentSheet > 32) currentSheet = 2;
+                            } else {
+                                currentSheet -= 3;
+                                if (currentSheet < 1) {
+                                    currentSheet = 32;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return currentShiftNum * 100 + currentSheet;
+        }
+
+        function changeTeam() {
+            currentTeam = parseInt(document.getElementById('teamSelect').value);
+            updateCalendar();
+        }
+
+        function formatDate(date) {
+            return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+        }
+
+        function updateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                `${year}年${month + 1}月`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            const calendarDays = document.getElementById('calendar-days');
+            calendarDays.innerHTML = '';
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'day';
+                
+                const shift = getShiftForDate(date, currentTeam);
+                const isCurrentMonth = date.getMonth() === month;
+                const isToday = date.getTime() === today.getTime();
+                const dateKey = formatDate(date);
+                const isSelected = selectedDate && formatDate(selectedDate) === dateKey;
+                
+                if (!isCurrentMonth) {
+                    dayElement.classList.add('other-month');
+                } else if (shift.startsWith('W(')) {
+                    dayElement.classList.add('w-day');
+                } else if (isWorkDay(shift)) {
+                    dayElement.classList.add('work');
+                } else {
+                    dayElement.classList.add('rest');
+                }
+                
+                if (isToday) {
+                    dayElement.classList.add('today');
+                }
+                
+                if (isSelected) {
+                    dayElement.classList.add('selected');
+                }
+                
+                let diagramDisplay = '';
+                if (diagramData[dateKey] && isWorkDay(shift)) {
+                    diagramDisplay = `<div class="diagram-number">${diagramData[dateKey]}</div>`;
+                }
+                
+                dayElement.innerHTML = `
+                    <div class="day-number">${date.getDate()}</div>
+                    <div class="shift-text">${shift}</div>
+                    ${diagramDisplay}
+                `;
+                
+                dayElement.addEventListener('click', () => selectDate(date));
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        function selectDate(date) {
+            selectedDate = new Date(date);
+            const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+            const selectedDateText = document.getElementById('selectedDateText');
+            
+            selectedDateText.textContent = formatDate(selectedDate);
+            selectedDateDisplay.style.display = 'block';
+            
+            updateCalendar();
+        }
+
+        function applyDiagram() {
+            if (!selectedDate) {
+                alert('日付を選択してください');
+                return;
+            }
+            
+            const diagramNumber = parseInt(document.getElementById('diagramNumber').value);
+            if (!diagramNumber || diagramNumber < 101 || diagramNumber > 532) {
+                alert('正しいダイヤ番号を入力してください（101-532）');
+                return;
+            }
+            
+            const shift = getShiftForDate(selectedDate, currentTeam);
+            const shiftNum = getShiftNumber(shift);
+            const diagramShiftNum = Math.floor(diagramNumber / 100);
+            
+            if (shiftNum !== diagramShiftNum) {
+                alert(`この日の出番は「${shiftNum}の出」ですが、ダイヤ番号の1桁目は「${diagramShiftNum}」です。\n出番とダイヤ番号の1桁目は一致する必要があります。`);
+                return;
+            }
+            
+            const shiftType = document.querySelector('input[name="shiftType"]:checked').value;
+            
+            // 選択日を基準に前後の日のダイヤ番号を計算
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const shift = getShiftForDate(date, currentTeam);
+                if (isWorkDay(shift)) {
+                    const calculatedDiagram = calculateDiagramNumber(selectedDate, diagramNumber, date, shiftType);
+                    diagramData[formatDate(date)] = calculatedDiagram;
+                }
+            }
+            
+            updateCalendar();
+        }
+
+        function clearDiagram() {
+            diagramData = {};
+            selectedDate = null;
+            document.getElementById('selectedDateDisplay').style.display = 'none';
+            document.getElementById('diagramNumber').value = '';
+            updateCalendar();
+        }
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            updateCalendar();
+        }
+
+        function resetToToday() {
+            currentDate = new Date();
+            updateCalendar();
+        }
+
+        // 初期化
+        updateCalendar();
+    </script>
+</body>
+</html>
